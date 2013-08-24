@@ -1,0 +1,15 @@
+.DS_Store
+Temp
+Library
+*.csproj
+*.pidb
+*.unityproj
+*.sln
+*.userprefs
+
+/unityproject/Assets/TK2DROOT
+/resources
+/unityproject/Assets/-tk2d.asset
+/unityproject/Assets/-tk2d.asset.meta
+/LD27Entry/Assets/HOTween
+/LD27Entry/Assets/TK2DROOT
