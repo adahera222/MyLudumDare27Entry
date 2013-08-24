@@ -78,10 +78,40 @@ public class PlayerScript : MonoBehaviour {
 	public Jump jump;
 	
 	private CharacterController controller;
+	private bool isFrozen = false;
+	
+	public void Spawn (Vector3 pos) {
+		movement.verticalSpeed = 0.0f;
+		movement.speed = 0.0f;
+		transform.position = pos;
+		canControl = true;
+		isFrozen = false;
+	}
+	
+	public void Unspawn() {
+		canControl = false;
+	}
+	
+	public void Freeze() {
+		if(isFrozen) {
+			isFrozen = false;
+			canControl = true;
+		} else {
+			isFrozen = true;
+			canControl = false;
+		}
+	}
+	
+	public void Reset() {
+		isFrozen = true;
+		canControl = false;
+	}
 	
 	void Awake () {
 		movement.direction = transform.TransformDirection(Vector3.forward);
 		controller = GetComponent<CharacterController>();
+		isFrozen = true;
+		canControl = false;
 	}
 	
 	void Move () {
@@ -166,6 +196,8 @@ public class PlayerScript : MonoBehaviour {
 			movement.verticalSpeed -= movement.gravity * Time.smoothDeltaTime;
 		
 		movement.verticalSpeed = Mathf.Max (movement.verticalSpeed, -movement.maxFallSpeed);
+		
+		if(isFrozen) movement.verticalSpeed = 0.0f;
 	}
 	
 	float CalculateJumpSpeed(float height) {
@@ -214,5 +246,9 @@ public class PlayerScript : MonoBehaviour {
 					movement.direction = jumpMoveDirection.normalized;
 			}
 		}
+	}
+	
+	void OnTriggerEnter(Collider other) {
+		StartCoroutine(GameEngine.Instance.NextZone());
 	}
 }
