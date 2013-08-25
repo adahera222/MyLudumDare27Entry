@@ -8,10 +8,12 @@ public class GameEngine : MonoBehaviour {
 	public tk2dTextMesh timerText;
 	public tk2dTextMesh dialogue1;
 	public tk2dTextMesh dialogue2;
-	public tk2dSprite explosion;
+	public tk2dTextMesh dialogue3;
 	public float timerSpeed = 1.0f;
 	public Zone[] zones;
 	public string[] scripts;
+	public string[] scripts2;
+	public string[] scripts3;
 	public PlayerScript player;
 	public CameraScript gameCamera;
 	public tk2dSprite title;
@@ -28,8 +30,13 @@ public class GameEngine : MonoBehaviour {
 	private bool isGameOver = false;
 	public bool isTransitioning = false;
 	public bool isKilled = false;
-	private bool isEnding = false;
+	public bool isEnding = false;
 	
+	public AudioClip stopSound;
+	public AudioClip startSound;
+	public AudioClip deathSound;
+	public AudioClip endSound;
+	public AudioClip bgm;
 	private static GameEngine instance;
 	private Color trans = new Color(0.0f, 0.0f, 0.0f, 0.0f);
 	public static GameEngine Instance
@@ -45,7 +52,6 @@ public class GameEngine : MonoBehaviour {
 	
 	void Awake() {
 		instance = this;
-		explosion.color = trans;
 		Physics.gravity = new Vector3(0.0f, -20.0f, 0.0f);
 	}
 	
@@ -53,6 +59,9 @@ public class GameEngine : MonoBehaviour {
 		isPaused = !isPaused;
 		player.canControl = isPaused;
 		player.isFrozen = !isPaused;
+		
+		AudioSource.PlayClipAtPoint(isPaused ? startSound : stopSound, player.transform.position);
+		
 		StartCoroutine(gameCamera.Flash(isPaused ? new Color(0.75f, 1.0f, 0.5f, 0.5f) : new Color(0.3f, 0.75f, 1.0f, 0.5f)));
 		yield return StartCoroutine(player.Freeze());
 	}
@@ -61,6 +70,9 @@ public class GameEngine : MonoBehaviour {
 		isPaused = pauseit;
 		player.canControl = pauseit;
 		player.isFrozen = !pauseit;
+		
+		AudioSource.PlayClipAtPoint(isPaused ? startSound : stopSound, player.transform.position);
+		StartCoroutine(gameCamera.Flash(isPaused ? new Color(0.75f, 1.0f, 0.5f, 0.5f) : new Color(0.3f, 0.75f, 1.0f, 0.5f)));
 		yield return StartCoroutine(player.Freeze());
 	}
 	
@@ -78,14 +90,17 @@ public class GameEngine : MonoBehaviour {
 		yield return StartCoroutine(PlayLogo());
 		StartCoroutine(InitZone(0));
 		StartCoroutine(InitZone(1));
-		StartCoroutine(InitZone(5));
+		StartCoroutine(InitZone(2));
 		yield return StartCoroutine(gameCamera.Fade(Color.black, trans, 3.0f));
-		//yield return StartCoroutine(PlayIntro());
-		StartCoroutine(player.PlayTransform());
-		Reset();
+		yield return StartCoroutine(PlayIntro());
 		yield return StartCoroutine(Pause(true));
 		
 		yield return new WaitForSeconds(1.0f);
+		AudioSource source = gameCamera.GetComponent<AudioSource>();
+		source.Stop();
+		source.clip = bgm;
+		source.loop = true;
+		source.Play();
 		isStarted = true;
 	}
 	
@@ -131,12 +146,14 @@ public class GameEngine : MonoBehaviour {
 			}
 			
 			while(!twn.isComplete) {
+				if(Input.GetButtonDown("Fire1")) twn.Complete();
 				yield return null;
 			}
 			while(true) {
 				if(Input.GetButtonDown("Fire1")) break;
 				yield return null;
 			}
+			yield return null;
 		}
 		dialogue2.text = "";
 		dialogue2.Commit();
@@ -193,6 +210,7 @@ public class GameEngine : MonoBehaviour {
 	}
 	
 	public IEnumerator PlayDeath(int index) {
+		AudioSource.PlayClipAtPoint(deathSound, player.transform.position);
 		isKilled = true;
 		player.isKilled = true;
 		player.PlayDeath();
@@ -220,14 +238,11 @@ public class GameEngine : MonoBehaviour {
 	}
 	
 	IEnumerator PlayGameOver() {
-		explosion.color = new Color(1.0f, 0.64f, 0.50f, 0.9f);
-		Tweener twn = HOTween.To (explosion, 0.4f, new TweenParms().Prop("scale", new Vector3(10.0f, 10.0f, 1.0f)));
-		while(!twn.isComplete){
-			yield return null;
-		}
-		yield return new WaitForSeconds(1.0f);
-		yield return StartCoroutine(gameCamera.Fade(trans, Color.black, 1.0f));
-		explosion.scale = new Vector3(0.0f, 0.0f, 1.0f);
+		AudioSource.PlayClipAtPoint(endSound, player.transform.position);
+		yield return StartCoroutine(gameCamera.Fade (trans, Color.yellow, 0.4f));
+		yield return StartCoroutine(gameCamera.Fade (Color.yellow, Color.white, 2.0f));
+		yield return StartCoroutine(gameCamera.Fade(Color.white, Color.black, 0.5f));
+		yield return new WaitForSeconds(0.5f);
 		player.Spawn(zones[0].spawnPoint.position);
 		Reset ();
 		gameCamera.Warp();
@@ -283,10 +298,14 @@ public class GameEngine : MonoBehaviour {
 		player.Unspawn();
 		yield return StartCoroutine(gameCamera.Fade(trans, Color.black, 1.0f));
 		isTransitioning = false;
-		cur_zone = 5;
+		cur_zone++;
 		while(!zones[cur_zone].isInitialized)
 			yield return null;
 		player.Spawn(zones[cur_zone].spawnPoint.position);
+		if(cur_zone == 5) {
+			isEnding = true;
+			player.canControl = false;
+		}
 		zones[cur_zone].entryIndex = cur;
 		zones[cur_zone].entryTime = timer;
 		gameCamera.Warp();
@@ -295,13 +314,148 @@ public class GameEngine : MonoBehaviour {
 		StartCoroutine(InitZone(cur_zone + 2));
 		if(cur_zone == 5)
 		{
-			isEnding = true;
-			player.canControl = false;
 			StartCoroutine(PlayEnding());
+			timerText.text = "";
+			timerText.Commit();
 		}
 	}
 	
 	IEnumerator PlayEnding() {
-		yield return null;
+		yield return new WaitForSeconds(1.0f);
+		yield return StartCoroutine(gameCamera.CutsceneOn());
+		Tweener twn;
+		if(timer > 3.0f) { // Good ending
+			foreach(string s in scripts2) {
+				dialogue3.text = "";
+				dialogue3.Commit();
+				twn = HOTween.To (dialogue3, s.Length * 0.05f, new TweenParms().Prop("text", s).Ease(EaseType.Linear).OnUpdate(()=>{ dialogue3.Commit(); }));
+				
+				while(!twn.isComplete) {
+					yield return null;
+				}
+				while(true) {
+					if(Input.GetButtonDown("Fire1")) break;
+					yield return null;
+				}
+			}
+			dialogue3.text = "";
+			dialogue3.Commit();
+			
+			string s2 = "Press Space to watch the world burn or jump to throw the device in.";
+			twn = HOTween.To (dialogue3, s2.Length * 0.05f, new TweenParms().Prop("text", s2).Ease(EaseType.Linear).OnUpdate(()=>{ dialogue3.Commit(); }));
+			
+			while(!twn.isComplete) {
+				yield return null;
+			}
+			while(true) {
+				if(Input.GetButtonDown("Fire1")) {
+					yield return StartCoroutine(WatchTheWorldBurn());
+					break;
+				}
+				if(Input.GetButtonDown("Jump")) {
+					yield return StartCoroutine(SaveTheWorld());
+					break;
+				}
+				yield return null;
+			}
+			
+		} else {// Bad ending
+			foreach(string s in scripts3) {
+				dialogue3.text = "";
+				dialogue3.Commit();
+				twn = HOTween.To (dialogue3, s.Length * 0.05f, new TweenParms().Prop("text", s).Ease(EaseType.Linear).OnUpdate(()=>{ dialogue3.Commit(); }));
+				
+				while(!twn.isComplete) {
+					yield return null;
+				}
+				while(true) {
+					if(Input.GetButtonDown("Fire1")) break;
+					yield return null;
+				}
+			}
+			dialogue3.text = "";
+			dialogue3.Commit();
+			
+			string s2 = "Press Space to watch the world burn or jump to become a heroic human barbecue.";
+			twn = HOTween.To (dialogue3, s2.Length * 0.05f, new TweenParms().Prop("text", s2).Ease(EaseType.Linear).OnUpdate(()=>{ dialogue3.Commit(); }));
+			
+			while(!twn.isComplete) {
+				yield return null;
+			}
+			while(true) {
+				if(Input.GetButtonDown("Fire1")) {
+					yield return StartCoroutine(WatchTheWorldBurn());
+					break;
+				}
+				if(Input.GetButtonDown("Jump")) {
+					yield return StartCoroutine(OvercookYourself());
+					break;
+				}
+				yield return null;
+			}
+		}
+	}
+	
+	IEnumerator WatchTheWorldBurn() {
+		dialogue3.text = "";
+		dialogue3.Commit();
+		yield return StartCoroutine(gameCamera.CutsceneOff());
+		yield return new WaitForSeconds(1.0f);
+		yield return StartCoroutine(player.PlaySit());
+		AudioSource.PlayClipAtPoint(startSound, player.transform.position);
+		StartCoroutine(gameCamera.Flash(new Color(0.3f, 0.75f, 1.0f, 0.5f)));
+		while(timer > 0.0f) {
+			timer -= timerSpeed * Time.deltaTime;
+			if(timer <= 0.0f)
+				break;
+			timerText.text = timer.ToString("0.0") + "s";
+			timerText.Commit();
+			yield return null;
+		}
+		timerText.text = "";
+		timerText.Commit();
+		AudioSource.PlayClipAtPoint(endSound, player.transform.position);
+		yield return StartCoroutine(gameCamera.Fade (trans, Color.yellow, 0.4f));
+		yield return StartCoroutine(gameCamera.Fade (Color.yellow, Color.white, 2.0f));
+		yield return StartCoroutine(gameCamera.Fade(Color.white, Color.black, 0.5f));
+		yield return new WaitForSeconds(2.0f);
+		
+		string s2 = "Seriously, what can you do with 10 seconds?";
+		HOTween.To (dialogue1, s2.Length * 0.05f, new TweenParms().Prop("text", s2).Ease(EaseType.Linear).OnUpdate(()=>{ dialogue1.Commit(); }));
+		while(true) {
+			yield return null;
+		}
+	}
+	
+	IEnumerator SaveTheWorld() {
+		dialogue3.text = "";
+		dialogue3.Commit();
+		yield return StartCoroutine(gameCamera.CutsceneOff());
+		yield return new WaitForSeconds(1.0f);
+		player.PlayThrow();
+		yield return StartCoroutine(gameCamera.Fade (trans, Color.black, 1.0f));
+		yield return new WaitForSeconds(2.0f);
+		
+		string s2 = "The humanity perished even before the world could be saved.";
+		HOTween.To (dialogue1, s2.Length * 0.05f, new TweenParms().Prop("text", s2).Ease(EaseType.Linear).OnUpdate(()=>{ dialogue1.Commit(); }));
+		while(true) {
+			yield return null;
+		}
+	}
+	
+	IEnumerator OvercookYourself() {
+		dialogue3.text = "";
+		dialogue3.Commit();
+		yield return StartCoroutine(gameCamera.CutsceneOff());
+		yield return new WaitForSeconds(1.0f);
+		player.PlayDive();
+		yield return StartCoroutine(gameCamera.Fade (trans, Color.black, 1.0f));
+		yield return new WaitForSeconds(2.0f);
+		
+		string s2 = "The world is saved, yet remained oblivious of the heroic deed of one scientist.";
+		HOTween.To (dialogue1, s2.Length * 0.05f, new TweenParms().Prop("text", s2).Ease(EaseType.Linear).OnUpdate(()=>{ dialogue1.Commit(); }));
+		while(true) {
+			yield return null;
+		}
 	}
 }

@@ -39,17 +39,17 @@ public class CameraScript : MonoBehaviour {
 		}
 	}
 	
-	public IEnumerator CutsceneOff() {
+	public IEnumerator CutsceneOn() {
 		tk2dCamera camera = GetComponent<tk2dCamera>();
-		Tweener twn = HOTween.To (camera, 1.0f, new TweenParms().Prop("ZoomFactor", 1.0f));
+		Tweener twn = HOTween.To (camera, 5.0f, new TweenParms().Prop("ZoomFactor", 0.33f));
 		while(!twn.isComplete){
 			yield return null;
 		}
 	}
 	
-	public IEnumerator CutsceneOn() {
+	public IEnumerator CutsceneOff() {
 		tk2dCamera camera = GetComponent<tk2dCamera>();
-		Tweener twn = HOTween.To (camera, 1.0f, new TweenParms().Prop("ZoomFactor", 2.5f));
+		Tweener twn = HOTween.To (camera, 3.0f, new TweenParms().Prop("ZoomFactor", 1.0f));
 		while(!twn.isComplete){
 			yield return null;
 		}

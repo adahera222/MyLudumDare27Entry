@@ -84,6 +84,8 @@ public class PlayerScript : MonoBehaviour {
 	public bool isFrozen = false;
 	public bool isKilled = false;
 	
+	public AudioClip jumpSound;
+	
 	void Awake () {
 		movement.direction = transform.TransformDirection(Vector3.forward);
 		controller = GetComponent<CharacterController>();
@@ -162,6 +164,20 @@ public class PlayerScript : MonoBehaviour {
 		animator.Play("Death");
 	}
 	
+	public void PlayDive() {
+		animator.Play("Dive");
+	}
+	
+	public void PlayThrow() {
+		animator.Play("Throw");
+	}
+	
+	public IEnumerator PlaySit() {
+		animator.Play("Sit");
+		while(animator.IsPlaying("Sit"))
+			yield return null;
+	}
+	
 	public IEnumerator PlayTransform() {
 		animator.Play("Prepare");
 		while(animator.IsPlaying("Prepare"))
@@ -170,6 +186,7 @@ public class PlayerScript : MonoBehaviour {
 	
 	void Animate() {
 		if(!GameEngine.Instance.isStarted || 
+		    GameEngine.Instance.isEnding ||
 			isKilled ||
 			isFrozen || 
 			animator.IsPlaying("Freeze") || 
@@ -257,6 +274,7 @@ public class PlayerScript : MonoBehaviour {
 		jump.lastButtonTime = -10;
 		jump.touchedCeiling = false;
 		jump.buttonReleased = false;
+		AudioSource.PlayClipAtPoint(jumpSound, transform.position);
 	}
 	
 	bool IsTouchingCeiling() {
