@@ -9,7 +9,10 @@ public class Zone : MonoBehaviour {
 	public bool isInitialized = false;
 	[@System.NonSerialized]
 	public Transform spawnPoint;
-	
+	[@System.NonSerialized]
+	public int entryIndex = 0;
+	[@System.NonSerialized]
+	public float entryTime = 0.0f;
 	void Start () {
 		isInitialized = false;
 		entities = GetComponentsInChildren<Entity>();

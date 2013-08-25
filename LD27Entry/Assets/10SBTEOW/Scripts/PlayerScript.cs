@@ -1,5 +1,7 @@
 using UnityEngine;
 using System.Collections;
+using Holoville.HOTween;
+using Holoville.HOTween.Plugins;
 
 // This controller class is inspired by Langman Controller.
 [System.Serializable]
@@ -78,7 +80,8 @@ public class PlayerScript : MonoBehaviour {
 	public Jump jump;
 	
 	private CharacterController controller;
-	private bool isFrozen = false;
+	public bool isFrozen = false;
+	public bool isKilled = false;
 	
 	public void Spawn (Vector3 pos) {
 		movement.verticalSpeed = 0.0f;
@@ -139,6 +142,21 @@ public class PlayerScript : MonoBehaviour {
 		}
 		
 		movement.speed = Mathf.Lerp (movement.speed, targetSpeed, curSmooth);
+		
+	}
+	
+	public IEnumerator DeathAnimation() {
+		canControl = false;
+		
+		Sequence seq = new Sequence();
+		seq.Append(HOTween.To (transform, 0.3f, new TweenParms().Prop("position", new Vector3(0.0f, 5.0f, 0.0f), true).Ease(EaseType.EaseOutCubic)));
+		seq.Append(HOTween.To (transform, 0.5f, new TweenParms().Prop("position", new Vector3(0.0f, -20.0f, 0.0f), true).Ease(EaseType.EaseInCubic)));
+		seq.Play();
+		
+		while(!seq.isComplete){
+			yield return null;
+		}
+		
 	}
 	
 	void Animate() {
@@ -196,8 +214,7 @@ public class PlayerScript : MonoBehaviour {
 			movement.verticalSpeed -= movement.gravity * Time.smoothDeltaTime;
 		
 		movement.verticalSpeed = Mathf.Max (movement.verticalSpeed, -movement.maxFallSpeed);
-		
-		if(isFrozen) movement.verticalSpeed = 0.0f;
+		if(isKilled) movement.verticalSpeed = 0.0f;
 	}
 	
 	float CalculateJumpSpeed(float height) {
@@ -249,6 +266,19 @@ public class PlayerScript : MonoBehaviour {
 	}
 	
 	void OnTriggerEnter(Collider other) {
-		StartCoroutine(GameEngine.Instance.NextZone());
+		if(!GameEngine.Instance.isTransitioning && other.gameObject.name == "Trigger")
+			StartCoroutine(GameEngine.Instance.NextZone());
+		else if(!GameEngine.Instance.isKilled && !GameEngine.Instance.isTransitioning && other.gameObject.name == "explos"){
+			StartCoroutine(GameEngine.Instance.PlayDeath(1));
+		}
+	}
+	
+	void OnControllerColliderHit (ControllerColliderHit hit) {
+		if(GameEngine.Instance.isStarted && isFrozen) {
+			Entity e = hit.gameObject.GetComponent<Entity>();
+			if(!GameEngine.Instance.isKilled && e != null && (e.GetVelocity() > 1.0f && (movement.collisionFlags & CollisionFlags.CollidedAbove) != 0)){
+				StartCoroutine(GameEngine.Instance.PlayDeath(0));
+			}
+		}
 	}
 }

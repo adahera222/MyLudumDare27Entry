@@ -20,9 +20,11 @@ public class GameEngine : MonoBehaviour {
 	public static int cur = 0;
 	private int cur_zone = 0;
 	
-	private bool isStarted = false;
+	public bool isStarted = false;
 	private bool isPaused = false;
 	private bool isGameOver = false;
+	public bool isTransitioning = false;
+	public bool isKilled = false;
 	
 	private bool startDebug = false;
 	private static GameEngine instance;
@@ -44,6 +46,18 @@ public class GameEngine : MonoBehaviour {
 		Physics.gravity = new Vector3(0.0f, -20.0f, 0.0f);
 	}
 	
+	void Pause() {
+		isPaused = !isPaused;
+		player.canControl = isPaused;
+		player.isFrozen = !isPaused;
+	}
+	
+	void Pause(bool pauseit) {
+		isPaused = pauseit;
+		player.canControl = pauseit;
+		player.isFrozen = !pauseit;
+	}
+	
 	void Reset() {
 		cur_zone = 0;
 		cur = 0;
@@ -59,6 +73,7 @@ public class GameEngine : MonoBehaviour {
 		StartCoroutine(InitZone(0));
 		StartCoroutine(InitZone(1));
 		StartCoroutine(InitZone(2));
+		StartCoroutine(InitZone(3));
 		// Debug
 		
 		startDebug = true;
@@ -93,7 +108,33 @@ public class GameEngine : MonoBehaviour {
 		yield return null;
 	}
 	
-	IEnumerator PlayIntro() {
+	public IEnumerator PlayIntro() {
+		yield return null;
+	}
+	
+	public IEnumerator PlayDeath(int index) {
+		isKilled = true;
+		player.isKilled = true;
+		gameCamera.isFollowing = false;
+		yield return StartCoroutine(player.DeathAnimation());
+		isPaused = true;
+		yield return new WaitForSeconds(0.5f);
+		yield return StartCoroutine(ReverseZone());
+		gameCamera.isFollowing = true;
+		player.Spawn(zones[cur_zone].spawnPoint.position);
+		Pause(true);
+		player.isKilled = false;
+		isKilled = false;
+		yield return null;
+	}
+	
+	IEnumerator ReverseZone() {
+		cur = zones[cur_zone].entryIndex;
+		timer = zones[cur_zone].entryTime;
+		last_timer = timer + 0.1f;
+		timerText.text = timer.ToString("0.0") + "s";
+		timerText.Commit();
+		zones[cur_zone].UpdateIndex(cur);
 		yield return null;
 	}
 	
@@ -106,8 +147,8 @@ public class GameEngine : MonoBehaviour {
 		yield return new WaitForSeconds(1.0f);
 		yield return StartCoroutine(gameCamera.Fade(trans, Color.black, 1.0f));
 		explosion.scale = new Vector3(0.0f, 0.0f, 1.0f);
-		Reset ();
 		player.Spawn(zones[0].spawnPoint.position);
+		Reset ();
 		gameCamera.Warp();
 		yield return StartCoroutine(gameCamera.Fade(Color.black, trans, 1.0f));
 		isGameOver = false;
@@ -125,9 +166,8 @@ public class GameEngine : MonoBehaviour {
 			return;
 		}
 		
-		if(Input.GetButtonDown("Fire1")) {
-			isPaused = !isPaused;
-			player.Freeze();
+		if(Input.GetButtonDown("Fire1") && !isKilled) {
+			Pause();
 		}
 		
 		if(!isPaused) {
@@ -158,13 +198,17 @@ public class GameEngine : MonoBehaviour {
 	}
 	
 	public IEnumerator NextZone() {
+		isTransitioning = true;
 		player.Unspawn();
 		yield return StartCoroutine(gameCamera.Fade(trans, Color.black, 1.0f));
-		cur_zone++;
+		cur_zone = 3;
 		player.Spawn(zones[cur_zone].spawnPoint.position);
+		zones[cur_zone].entryIndex = cur;
+		zones[cur_zone].entryTime = timer;
 		gameCamera.Warp();
 		zones[cur_zone].UpdateIndex(cur);
 		yield return StartCoroutine(gameCamera.Fade(Color.black, trans, 1.0f));
 		yield return StartCoroutine(InitZone(cur_zone + 1));
+		isTransitioning = false;
 	}
 }

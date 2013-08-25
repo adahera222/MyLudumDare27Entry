@@ -8,18 +8,20 @@ public class CameraScript : MonoBehaviour {
 	public Transform target;
 	private Vector3 vel = Vector3.zero;
 	public tk2dSprite fade;
+	public bool isFollowing = true;
 	// Update is called once per frame
 	void Update () {
 		Vector3 offset = target.position - transform.position;		
 		Vector3 dest = transform.position + offset;
 		dest.y += 4;
 		dest.z = transform.position.z;
-		transform.position = Vector3.SmoothDamp(transform.position, dest, ref vel, 0.2f);
+		if(isFollowing)
+			transform.position = Vector3.SmoothDamp(transform.position, dest, ref vel, 0.2f);
 		
 	}
 	
 	public void Warp() {
-		transform.position = new Vector3(target.position.x,	target.position.y, transform.position.z);
+		transform.position = new Vector3(target.position.x,	target.position.y + 4, transform.position.z);
 	}
 	
 	public IEnumerator Fade(Color end, float duration) {
