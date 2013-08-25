@@ -151,7 +151,7 @@ public class Entity : MonoBehaviour {
 			rigidbody.velocity = arg2;
 			break;
 		case Type.BILLBOARD:
-			HOTween.To (transform, 2.0f, new TweenParms().Prop("localEulerAngles", new Vector3(0, 0, -40.4f)).Ease(EaseType.EaseInBounce));
+			HOTween.To (transform, 2.0f, new TweenParms().Prop("localEulerAngles", new Vector3(0, 0, 40.4f)).Ease(EaseType.EaseOutCubic));
 			yield return new WaitForSeconds(2.0f);
 			rigidbody.useGravity = true;
 			rigidbody.velocity = new Vector3(0, -10.0f, 0);

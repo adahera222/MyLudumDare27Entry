@@ -54,4 +54,12 @@ public class CameraScript : MonoBehaviour {
 			yield return null;
 		}
 	}
+	
+	public IEnumerator Flash(Color color) {
+		Sequence seq = new Sequence();
+		seq.Append(HOTween.To(fade, 0.1f, new TweenParms().Prop("color", color)));
+		seq.Append(HOTween.To(fade, 0.1f, new TweenParms().Prop("color", new Color(0.0f, 0.0f, 0.0f, 0.0f))));
+		seq.Play();
+		yield return null;
+	}
 }

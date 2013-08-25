@@ -61,4 +61,11 @@ public class Zone : MonoBehaviour {
 			e.UpdatePosition(index);
 		}
 	}
+	
+	public IEnumerator JumpBackward(int index) {
+		foreach(Entity e in entities) {
+			e.JumpToBackward(index, 1.0f);
+		}
+		yield return new WaitForSeconds(1.0f);
+	}
 }

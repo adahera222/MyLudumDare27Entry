@@ -80,8 +80,17 @@ public class PlayerScript : MonoBehaviour {
 	public Jump jump;
 	
 	private CharacterController controller;
+	public tk2dSpriteAnimator animator;
 	public bool isFrozen = false;
 	public bool isKilled = false;
+	
+	void Awake () {
+		movement.direction = transform.TransformDirection(Vector3.forward);
+		controller = GetComponent<CharacterController>();
+		isFrozen = true;
+		canControl = false;
+		animator = transform.FindChild("AnimatedSprite").GetComponent<tk2dSpriteAnimator>();
+	}
 	
 	public void Spawn (Vector3 pos) {
 		movement.verticalSpeed = 0.0f;
@@ -95,24 +104,14 @@ public class PlayerScript : MonoBehaviour {
 		canControl = false;
 	}
 	
-	public void Freeze() {
-		if(isFrozen) {
-			isFrozen = false;
-			canControl = true;
-		} else {
-			isFrozen = true;
-			canControl = false;
-		}
+	public IEnumerator Freeze() {
+		string name = isFrozen ? "Freeze" : "Unfreeze";
+		animator.Play(name);
+		while(animator.IsPlaying(name))
+			yield return null;
 	}
 	
 	public void Reset() {
-		isFrozen = true;
-		canControl = false;
-	}
-	
-	void Awake () {
-		movement.direction = transform.TransformDirection(Vector3.forward);
-		controller = GetComponent<CharacterController>();
 		isFrozen = true;
 		canControl = false;
 	}
@@ -159,8 +158,37 @@ public class PlayerScript : MonoBehaviour {
 		
 	}
 	
+	public void PlayDeath() {
+		animator.Play("Death");
+	}
+	
+	public IEnumerator PlayTransform() {
+		animator.Play("Prepare");
+		while(animator.IsPlaying("Prepare"))
+			yield return null;
+	}
+	
 	void Animate() {
+		if(!GameEngine.Instance.isStarted || 
+			isKilled ||
+			isFrozen || 
+			animator.IsPlaying("Freeze") || 
+			animator.IsPlaying("Unfreeze")) return;
 		
+		
+		if(movement.direction.x > 0) animator.Sprite.FlipX = false;
+		else animator.Sprite.FlipX = true;
+		
+		if(!controller.isGrounded){
+			if(movement.verticalSpeed <= 0)
+				animator.Play("JumpDown");
+			else
+				animator.Play("JumpUp");
+		} else if(movement.isMoving) {
+			animator.Play("Walk");
+		} else if (controller.isGrounded) {
+			animator.Play("Idle");
+		}
 	}
 	
 	bool JustUngrounded() {
