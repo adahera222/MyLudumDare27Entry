@@ -154,7 +154,7 @@ public class Entity : MonoBehaviour {
 			HOTween.To (transform, 2.0f, new TweenParms().Prop("localEulerAngles", new Vector3(0, 0, -40.4f)).Ease(EaseType.EaseInBounce));
 			yield return new WaitForSeconds(2.0f);
 			rigidbody.useGravity = true;
-			rigidbody.velocity = new Vector3(0, -20.0f, 0);
+			rigidbody.velocity = new Vector3(0, -10.0f, 0);
 			break;
 		case Type.EXPLOSION:
 			yield return new WaitForSeconds(arg);
@@ -177,6 +177,8 @@ public class Entity : MonoBehaviour {
 	}
 	
 	public float GetVelocity() {
+		if(velocities.Count <= GameEngine.cur)
+			return velocities[velocities.Count-1];
 		return velocities[GameEngine.cur];
 	}
 }

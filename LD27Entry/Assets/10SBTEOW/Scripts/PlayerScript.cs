@@ -257,7 +257,8 @@ public class PlayerScript : MonoBehaviour {
 		if(controller.isGrounded) {
 			if(jump.jumping) {
 				jump.jumping = false;
-				
+				if((Time.time - jump.lastGroundedTime) > 1.0f)
+					StartCoroutine(GameEngine.Instance.PlayDeath(0));
 				Vector3 jumpMoveDirection = movement.direction * movement.speed;
 				if(jumpMoveDirection.sqrMagnitude > 0.01f)
 					movement.direction = jumpMoveDirection.normalized;

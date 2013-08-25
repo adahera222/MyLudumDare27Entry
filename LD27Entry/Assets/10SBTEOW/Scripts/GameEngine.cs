@@ -72,13 +72,6 @@ public class GameEngine : MonoBehaviour {
 		yield return StartCoroutine(PlayLogo());
 		StartCoroutine(InitZone(0));
 		StartCoroutine(InitZone(1));
-		StartCoroutine(InitZone(2));
-		StartCoroutine(InitZone(3));
-		// Debug
-		
-		startDebug = true;
-		timerText.text = timer.ToString("00.0") + "s";
-		timerText.Commit();
 		
 		yield return StartCoroutine(gameCamera.Fade(Color.black, trans, 3.0f));
 		//yield return StartCoroutine(gameCamera.CutsceneOn());
@@ -120,6 +113,7 @@ public class GameEngine : MonoBehaviour {
 		isPaused = true;
 		yield return new WaitForSeconds(0.5f);
 		yield return StartCoroutine(ReverseZone());
+		yield return new WaitForSeconds(0.5f);
 		gameCamera.isFollowing = true;
 		player.Spawn(zones[cur_zone].spawnPoint.position);
 		Pause(true);
@@ -201,7 +195,10 @@ public class GameEngine : MonoBehaviour {
 		isTransitioning = true;
 		player.Unspawn();
 		yield return StartCoroutine(gameCamera.Fade(trans, Color.black, 1.0f));
-		cur_zone = 3;
+		isTransitioning = false;
+		cur_zone++;
+		while(!zones[cur_zone].isInitialized)
+			yield return null;
 		player.Spawn(zones[cur_zone].spawnPoint.position);
 		zones[cur_zone].entryIndex = cur;
 		zones[cur_zone].entryTime = timer;
@@ -209,6 +206,5 @@ public class GameEngine : MonoBehaviour {
 		zones[cur_zone].UpdateIndex(cur);
 		yield return StartCoroutine(gameCamera.Fade(Color.black, trans, 1.0f));
 		yield return StartCoroutine(InitZone(cur_zone + 1));
-		isTransitioning = false;
 	}
 }
